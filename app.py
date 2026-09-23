@@ -12,15 +12,16 @@ from services.note_service import (
 app = FastAPI()
 
 
+from pydantic import BaseModel, Field
 class NoteCreate(BaseModel):
-    title: str
-    content: str
-    author: str
-
+    title: str = Field(min_length=3)
+    content: str = Field(min_length=5)
+    author: str = Field(min_length=2)
 
 class NoteUpdate(BaseModel):
-    title: str
-    content: str
+    title: str = Field(min_length=3)
+    content: str = Field(min_length=5)
+    
 
 
 class NoteResponse(BaseModel):
@@ -90,3 +91,4 @@ def delete_existing_note(note_id: int):
         )
 
     return {"message": "Note deleted successfully"}
+

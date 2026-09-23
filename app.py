@@ -1,11 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from services.note_service import (
     get_notes,
-    get_note,
     create_note,
+    get_note,
     update_note,
+    delete_note,
 )
 
 app = FastAPI()
@@ -23,7 +24,15 @@ def get_all_notes():
 
 @app.get("/notes/{note_id}")
 def get_single_note(note_id: int):
-    return get_note(note_id)
+    note = get_note(note_id)
+
+    if note is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Note not found",
+        )
+
+    return note
 
 
 class NoteCreate(BaseModel):
@@ -40,6 +49,7 @@ def create_new_note(note: NoteCreate):
         note.author,
     )
 
+
 class NoteUpdate(BaseModel):
     title: str
     content: str
@@ -52,3 +62,8 @@ def update_existing_note(note_id: int, note: NoteUpdate):
         note.title,
         note.content,
     )
+
+
+@app.delete("/notes/{note_id}")
+def delete_existing_note(note_id: int):
+    return delete_note(note_id)

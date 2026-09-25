@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 from models.base import Base
 from models.note import Note
+from models.user import User
 
 
 load_dotenv()
@@ -30,3 +31,4 @@ def get_db():
         yield db
     finally:
         db.close()
+        

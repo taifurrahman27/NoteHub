@@ -1,23 +1,23 @@
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from auth import get_current_user
 from database import get_db
+from models.user import User
 from schemas.note import NoteCreate, NoteUpdate, NoteResponse
+from schemas.user import UserCreate, UserResponse, Token
+from services.auth_service import (
+    hash_password,
+    verify_password,
+    create_access_token,
+)
 from services.note_service import (
     get_notes,
     create_note,
     get_note,
     update_note,
     delete_note,
-)
-
-from fastapi.security import OAuth2PasswordRequestForm
-from schemas.user import UserCreate, UserResponse, Token
-from models.user import User
-from services.auth_service import (
-    hash_password,
-    verify_password,
-    create_access_token,
 )
 
 
@@ -30,7 +30,10 @@ def root():
 
 
 @app.post("/register", response_model=UserResponse)
-def register(user: UserCreate, db: Session = Depends(get_db)):
+def register(
+    user: UserCreate,
+    db: Session = Depends(get_db),
+):
     existing_user = db.query(User).filter(
         User.username == user.username
     ).first()
@@ -82,12 +85,17 @@ def login(
 
 
 @app.get("/notes", response_model=list[NoteResponse])
-def get_all_notes(db: Session = Depends(get_db)):
+def get_all_notes(
+    db: Session = Depends(get_db),
+):
     return get_notes(db)
 
 
 @app.get("/notes/{note_id}", response_model=NoteResponse)
-def get_single_note(note_id: int, db: Session = Depends(get_db)):
+def get_single_note(
+    note_id: int,
+    db: Session = Depends(get_db),
+):
     note = get_note(db, note_id)
 
     if note is None:
@@ -100,7 +108,11 @@ def get_single_note(note_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/notes", response_model=NoteResponse)
-def create_new_note(note: NoteCreate, db: Session = Depends(get_db)):
+def create_new_note(
+    note: NoteCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     return create_note(
         db,
         note.title,
@@ -114,6 +126,7 @@ def update_existing_note(
     note_id: int,
     note: NoteUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     updated_note = update_note(
         db,
@@ -135,6 +148,7 @@ def update_existing_note(
 def delete_existing_note(
     note_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     deleted = delete_note(db, note_id)
 

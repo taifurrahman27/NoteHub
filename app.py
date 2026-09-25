@@ -1,5 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
 
+from database import get_db
 from services.note_service import (
     get_notes,
     create_note,
@@ -11,7 +14,6 @@ from services.note_service import (
 app = FastAPI()
 
 
-from pydantic import BaseModel, Field
 class NoteCreate(BaseModel):
     title: str = Field(min_length=3)
     content: str = Field(min_length=5)
@@ -21,10 +23,11 @@ class NoteCreate(BaseModel):
 class NoteUpdate(BaseModel):
     title: str = Field(min_length=3)
     content: str = Field(min_length=5)
-    
 
 
 class NoteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
     content: str
@@ -37,13 +40,13 @@ def root():
 
 
 @app.get("/notes", response_model=list[NoteResponse])
-def get_all_notes():
-    return get_notes()
+def get_all_notes(db: Session = Depends(get_db)):
+    return get_notes(db)
 
 
 @app.get("/notes/{note_id}", response_model=NoteResponse)
-def get_single_note(note_id: int):
-    note = get_note(note_id)
+def get_single_note(note_id: int, db: Session = Depends(get_db)):
+    note = get_note(db, note_id)
 
     if note is None:
         raise HTTPException(
@@ -55,8 +58,9 @@ def get_single_note(note_id: int):
 
 
 @app.post("/notes", response_model=NoteResponse)
-def create_new_note(note: NoteCreate):
+def create_new_note(note: NoteCreate, db: Session = Depends(get_db)):
     return create_note(
+        db,
         note.title,
         note.content,
         note.author,
@@ -64,8 +68,13 @@ def create_new_note(note: NoteCreate):
 
 
 @app.put("/notes/{note_id}", response_model=NoteResponse)
-def update_existing_note(note_id: int, note: NoteUpdate):
+def update_existing_note(
+    note_id: int,
+    note: NoteUpdate,
+    db: Session = Depends(get_db),
+):
     updated_note = update_note(
+        db,
         note_id,
         note.title,
         note.content,
@@ -81,8 +90,11 @@ def update_existing_note(note_id: int, note: NoteUpdate):
 
 
 @app.delete("/notes/{note_id}")
-def delete_existing_note(note_id: int):
-    deleted = delete_note(note_id)
+def delete_existing_note(
+    note_id: int,
+    db: Session = Depends(get_db),
+):
+    deleted = delete_note(db, note_id)
 
     if not deleted:
         raise HTTPException(
@@ -91,4 +103,3 @@ def delete_existing_note(note_id: int):
         )
 
     return {"message": "Note deleted successfully"}
-

@@ -1,45 +1,58 @@
-from data.notes import notes
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from models.note import Note
 
 
-def get_notes():
-    return notes
+def get_notes(db: Session):
+    return db.scalars(select(Note)).all()
 
 
-def create_note(title, content, author):
-    note = {
-        "id": len(notes) + 1,
-        "title": title,
-        "content": content,
-        "author": author,
-    }
+def get_note(db: Session, note_id: int):
+    return db.get(Note, note_id)
 
-    notes.append(note)
+
+def create_note(db: Session, title: str, content: str, author: str):
+    note = Note(
+        title=title,
+        content=content,
+        author=author,
+    )
+
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+
     return note
 
 
-def get_note(note_id):
-    for note in notes:
-        if note["id"] == note_id:
-            return note
-    return None
+def update_note(
+    db: Session,
+    note_id: int,
+    title: str,
+    content: str,
+):
+    note = db.get(Note, note_id)
+
+    if note is None:
+        return None
+
+    note.title = title
+    note.content = content
+
+    db.commit()
+    db.refresh(note)
+
+    return note
 
 
-def update_note(note_id, title, content):
-    note = get_note(note_id)
+def delete_note(db: Session, note_id: int):
+    note = db.get(Note, note_id)
 
-    if note:
-        note["title"] = title
-        note["content"] = content
-        return note
+    if note is None:
+        return False
 
-    return None
+    db.delete(note)
+    db.commit()
 
-
-def delete_note(note_id):
-    note = get_note(note_id)
-
-    if note:
-        notes.remove(note)
-        return True
-
-    return False
+    return True

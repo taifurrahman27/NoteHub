@@ -1,10 +1,16 @@
+import os
+
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from models.base import Base
 from models.note import Note
 
-DATABASE_URL = "postgresql+psycopg://postgres:REMOVED_PASSWORD@localhost/notehub"
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL)
 
@@ -17,8 +23,6 @@ SessionLocal = sessionmaker(
 Base.metadata.create_all(engine)
 
 
-
-
 def get_db():
     db = SessionLocal()
 
@@ -26,18 +30,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-with SessionLocal() as db:
-    note = Note(
-        title="Database Test",
-        content="This note is stored in PostgreSQL.",
-        author="Taifur",
-    )
-
-    db.add(note)
-    db.commit()
-    db.refresh(note)
-
-    print(note.id)
-
